@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply min-h-screen;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-white/15 bg-slate-900/70 p-4 shadow-lg backdrop-blur;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-cyan-500 px-4 py-2 font-medium text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border border-white/20 bg-slate-800 px-4 py-2 font-medium text-slate-100 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .chip {
+    @apply rounded-full border border-white/20 bg-slate-800 px-2 py-1 text-xs text-slate-200;
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-card-in {
+  animation: card-in 220ms ease-out both;
+}
+
+@keyframes play-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-42px) scale(0.88);
+  }
+}
+
+.animate-play-out {
+  animation: play-out 360ms ease-in forwards;
+}
+
+@keyframes pile-focus {
+  0% {
+    transform: scale(0.92);
+    filter: brightness(1.15);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+.animate-pile-focus {
+  animation: pile-focus 260ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "trickleader-client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm exec vite",
+    "build": "pnpm exec tsc -b && pnpm exec vite build",
+    "preview": "pnpm exec vite preview",
+    "test": "pnpm exec vitest run",
+    "test:e2e": "pnpm exec playwright test"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.66.0",
+    "@tanstack/react-query-devtools": "^5.66.0",
+    "@tanstack/react-router": "^1.101.16",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.4.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.10",
+    "ws": "^8.19.0"
+  }
+}
