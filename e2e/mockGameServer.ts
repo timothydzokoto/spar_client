@@ -32,6 +32,8 @@ const HEART_RANK_ORDER: Record<string, number> = {
 export class MockGameServer {
   private readonly wss: WebSocketServer;
   private hand = ["9H", "KS", "AH"];
+  private youScore = 0;
+  private opponentScore = 0;
   private readonly gameId = "table-1";
   private readonly you = 1;
   private readonly opponent = 2;
@@ -80,6 +82,8 @@ export class MockGameServer {
   }
 
   private handleStartRound(ws: WebSocket, payload: StartRoundPayload): void {
+    this.youScore = 0;
+    this.opponentScore = 0;
     if (payload?.rules?.excludedRanks?.includes("A")) {
       this.hand = ["9H", "KS", "QH"];
     } else {
@@ -105,6 +109,13 @@ export class MockGameServer {
     this.hand = this.hand.filter((c) => c !== card);
     const opponentCard = "7H";
     const winnerPlayerId = getWinner(card, opponentCard);
+    const winnerCard = winnerPlayerId === this.you ? card : opponentCard;
+    const trickPoints = scoreForCard(winnerCard);
+    if (winnerPlayerId === this.you) {
+      this.youScore += trickPoints;
+    } else {
+      this.opponentScore += trickPoints;
+    }
 
     this.send(ws, "trick_complete", {
       gameId: this.gameId,
@@ -115,6 +126,9 @@ export class MockGameServer {
         { playerId: this.you, card },
       ],
       winnerPlayerId,
+      winnerCard,
+      trickPoints,
+      winnerScoreTotal: winnerPlayerId === this.you ? this.youScore : this.opponentScore,
     });
 
     this.send(ws, "state_update", {
@@ -127,8 +141,8 @@ export class MockGameServer {
       currentTrick: [],
       yourHand: this.hand,
       players: [
-        { playerId: this.you, handCount: this.hand.length },
-        { playerId: this.opponent, handCount: 2 },
+        { playerId: this.you, handCount: this.hand.length, score: this.youScore },
+        { playerId: this.opponent, handCount: 2, score: this.opponentScore },
       ],
     });
   }
@@ -144,8 +158,8 @@ export class MockGameServer {
       currentTrick: [{ playerId: this.opponent, card: "7H" }],
       yourHand: this.hand,
       players: [
-        { playerId: this.you, handCount: this.hand.length },
-        { playerId: this.opponent, handCount: 3 },
+        { playerId: this.you, handCount: this.hand.length, score: this.youScore },
+        { playerId: this.opponent, handCount: 3, score: this.opponentScore },
       ],
     });
   }
@@ -153,6 +167,17 @@ export class MockGameServer {
   private send(ws: WebSocket, type: string, payload: unknown): void {
     ws.send(JSON.stringify({ type, payload }));
   }
+}
+
+function scoreForCard(card: string): number {
+  const rank = card.slice(0, -1);
+  if (rank === "6") {
+    return 3;
+  }
+  if (rank === "7") {
+    return 2;
+  }
+  return 1;
 }
 
 function getWinner(youCard: string, opponentCard: string): number {

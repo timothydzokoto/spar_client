@@ -43,6 +43,7 @@ export type PlayCardPayload = {
 export type PlayerView = {
   playerId: number;
   handCount: number;
+  score: number;
 };
 
 export type PlayedCardView = {
@@ -68,11 +69,16 @@ export type TrickCompletePayload = {
   leadSuit: string;
   plays: PlayedCardView[];
   winnerPlayerId: number;
+  winnerCard: string;
+  trickPoints: number;
+  winnerScoreTotal: number;
 };
 
 export type RoundCompletePayload = {
   gameId: string;
   winnerPlayerId: number;
+  finalScores: Record<string, number>;
+  winnerTotalPoints: number;
 };
 
 export type ErrorPayload = {

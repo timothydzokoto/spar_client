@@ -25,9 +25,10 @@ export const queryKey = (gameId: string, playerId: number) => ["game", gameId, p
 type UseGameSessionProps = {
   onToast: (text: string, tone?: ToastTone) => void;
   onRoundComplete: (winnerPlayerId: number) => void;
+  onTrickComplete?: (payload: TrickCompletePayload) => void;
 };
 
-export function useGameSession({ onToast, onRoundComplete }: UseGameSessionProps) {
+export function useGameSession({ onToast, onRoundComplete, onTrickComplete }: UseGameSessionProps) {
   const queryClient = useQueryClient();
   const socketRef = useRef<GameSocket | null>(null);
   const [connected, setConnected] = useState(false);
@@ -41,7 +42,7 @@ export function useGameSession({ onToast, onRoundComplete }: UseGameSessionProps
 
     const offStatus = socket.onStatus((next) => setConnected(next));
     const offMessage = socket.onMessage((message) => {
-      handleInbound(message, queryClient, setJoined, setError, setEvents, onToast, onRoundComplete);
+      handleInbound(message, queryClient, setJoined, setError, setEvents, onToast, onRoundComplete, onTrickComplete);
     });
 
     return () => {
@@ -50,7 +51,7 @@ export function useGameSession({ onToast, onRoundComplete }: UseGameSessionProps
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [onRoundComplete, onToast, queryClient]);
+  }, [onRoundComplete, onToast, onTrickComplete, queryClient]);
 
   function connect(url: string): void {
     socketRef.current?.connect(url);
@@ -105,6 +106,7 @@ function handleInbound(
   setEvents: Dispatch<SetStateAction<EventLog[]>>,
   onToast: (text: string, tone?: ToastTone) => void,
   onRoundComplete: (winnerPlayerId: number) => void,
+  onTrickComplete?: (payload: TrickCompletePayload) => void,
 ) {
   switch (envelope.type) {
     case MessageType.Joined: {
@@ -119,7 +121,10 @@ function handleInbound(
       const normalized: StateUpdatePayload = {
         ...payload,
         currentTrick: payload.currentTrick ?? [],
-        players: payload.players ?? [],
+        players: (payload.players ?? []).map((player) => ({
+          ...player,
+          score: player.score ?? 0,
+        })),
         yourHand: payload.yourHand ?? [],
       };
       queryClient.setQueryData(queryKey(normalized.gameId, normalized.you), normalized);
@@ -130,17 +135,21 @@ function handleInbound(
       const payload = envelope.payload as TrickCompletePayload;
       pushEvent(
         setEvents,
-        `Trick ${payload.trickNumber} winner: P${payload.winnerPlayerId} (${payload.plays
+        `Trick ${payload.trickNumber} winner: P${payload.winnerPlayerId} +${payload.trickPoints} (${payload.plays
           .map((p) => `P${p.playerId}:${p.card}`)
           .join(", ")})`,
       );
-      onToast(`Trick ${payload.trickNumber}: P${payload.winnerPlayerId} won`, "info");
+      onToast(
+        `Trick ${payload.trickNumber}: P${payload.winnerPlayerId} won with ${payload.winnerCard} (+${payload.trickPoints})`,
+        "info",
+      );
+      onTrickComplete?.(payload);
       return;
     }
     case MessageType.RoundComplete: {
       const payload = envelope.payload as RoundCompletePayload;
-      pushEvent(setEvents, `Round complete. Winner: P${payload.winnerPlayerId}`);
-      onToast(`Round winner: Player ${payload.winnerPlayerId}`, "success");
+      pushEvent(setEvents, `Round complete. Winner: P${payload.winnerPlayerId} (${payload.winnerTotalPoints} pts)`);
+      onToast(`Round winner: Player ${payload.winnerPlayerId} (${payload.winnerTotalPoints} pts)`, "success");
       onRoundComplete(payload.winnerPlayerId);
       return;
     }

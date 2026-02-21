@@ -5,6 +5,7 @@ type TrickPileProps = {
   trickNumber: number;
   leadSuit?: string;
   cards: PlayedCardView[];
+  active?: boolean;
 };
 
 const LEAD_LABEL: Record<string, string> = {
@@ -14,9 +15,16 @@ const LEAD_LABEL: Record<string, string> = {
   S: "Spades",
 };
 
-export function TrickPile({ trickNumber, leadSuit, cards }: TrickPileProps) {
+export function TrickPile({ trickNumber, leadSuit, cards, active = true }: TrickPileProps) {
   return (
-    <div className="panel mx-auto w-full max-w-md" aria-live="polite" aria-label="Current trick pile">
+    <div
+      className={[
+        "panel mx-auto w-full max-w-md",
+        active ? "border-cyan-300/60 ring-1 ring-cyan-300/50" : "",
+      ].join(" ")}
+      aria-live="polite"
+      aria-label="Current trick pile"
+    >
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-200">Trick {trickNumber + 1}</p>
         <p className="text-xs text-slate-300">Lead Suit: {LEAD_LABEL[leadSuit ?? ""] ?? "-"}</p>

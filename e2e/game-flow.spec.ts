@@ -33,6 +33,7 @@ test("connect, join, start round, enforce follow suit, and play legal card", asy
   await legalCard.click();
   await page.getByRole("button", { name: "Play Selected" }).click();
 
-  await expect(page.getByText("Trick 0 winner: P1 (P2:7H, P1:AH)")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Card AH" })).toHaveCount(0);
+  await expect(page.getByText("Trick 0 winner: P1 +1 (P2:7H, P1:AH)")).toBeVisible();
+  const handArea = page.getByRole("listbox");
+  await expect(handArea.getByRole("button", { name: "Card AH" })).toHaveCount(0);
 });

@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type { PlayerView } from "../../../lib/protocol";
 import { PlayerSeat } from "../components/PlayerSeat";
 import { PlayingCard } from "../components/PlayingCard";
+import { TrickHistory } from "../components/TrickHistory";
 import { TrickPile } from "../components/TrickPile";
 import { useGameApp } from "../context/GameAppContext";
 
@@ -107,6 +108,7 @@ export function TableScreen() {
               <PlayerSeat
                 playerId={seatLayout.top.playerId}
                 handCount={seatLayout.top.handCount}
+                score={seatLayout.top.score}
                 isLeader={currentState.leaderPlayerId === seatLayout.top.playerId}
                 isTurn={currentState.currentTurnPlayerId === seatLayout.top.playerId}
                 compact
@@ -120,18 +122,25 @@ export function TableScreen() {
                 <PlayerSeat
                   playerId={seatLayout.left.playerId}
                   handCount={seatLayout.left.handCount}
+                  score={seatLayout.left.score}
                   isLeader={currentState.leaderPlayerId === seatLayout.left.playerId}
                   isTurn={currentState.currentTurnPlayerId === seatLayout.left.playerId}
                   compact
                 />
               ) : <div />}
             </div>
-            <TrickPile trickNumber={currentState.trickNumber} leadSuit={leadSuit} cards={currentState.currentTrick ?? []} />
+            <TrickPile
+              trickNumber={currentState.trickNumber}
+              leadSuit={leadSuit}
+              cards={currentState.currentTrick ?? []}
+              active
+            />
             <div className="flex justify-center md:justify-end">
               {seatLayout.right ? (
                 <PlayerSeat
                   playerId={seatLayout.right.playerId}
                   handCount={seatLayout.right.handCount}
+                  score={seatLayout.right.score}
                   isLeader={currentState.leaderPlayerId === seatLayout.right.playerId}
                   isTurn={currentState.currentTurnPlayerId === seatLayout.right.playerId}
                   compact
@@ -144,6 +153,7 @@ export function TableScreen() {
             <PlayerSeat
               playerId={yourId}
               handCount={yourHand.length}
+              score={players.find((p) => p.playerId === yourId)?.score ?? 0}
               isYou
               isLeader={currentState.leaderPlayerId === yourId}
               isTurn={currentState.currentTurnPlayerId === yourId}
@@ -208,6 +218,10 @@ export function TableScreen() {
           </div>
         </section>
       )}
+
+      {currentState ? (
+        <TrickHistory tricks={game.completedTricks} activeTrickNumber={currentState.trickNumber} />
+      ) : null}
 
       <section className="mt-4 panel" aria-live="polite">
         <h3 className="mb-2 text-sm font-semibold text-slate-100">Game Log</h3>

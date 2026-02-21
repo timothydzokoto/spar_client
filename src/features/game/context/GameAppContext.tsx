@@ -1,7 +1,12 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageType, type StartRoundPayload, type StateUpdatePayload } from "../../../lib/protocol";
+import {
+  MessageType,
+  type StartRoundPayload,
+  type StateUpdatePayload,
+  type TrickCompletePayload,
+} from "../../../lib/protocol";
 import { computeEffectiveDeckInfo, validateCardTokens, validateRankTokens } from "../gameRules";
 import { queryKey, useGameSession } from "../hooks/useGameSession";
 import type { ToastItem } from "../components/ToastStack";
@@ -43,6 +48,7 @@ type GameAppContextValue = {
   roundWinner: number | null;
   roundModalOpen: boolean;
   closeRoundModal: () => void;
+  completedTricks: TrickCompletePayload[];
 };
 
 const GameAppContext = createContext<GameAppContextValue | null>(null);
@@ -58,6 +64,7 @@ export function GameAppProvider({ children }: PropsWithChildren) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [roundWinner, setRoundWinner] = useState<number | null>(null);
   const [roundModalOpen, setRoundModalOpen] = useState(false);
+  const [completedTricks, setCompletedTricks] = useState<TrickCompletePayload[]>([]);
   const hasEverConnected = useRef(false);
 
   const onToast = useCallback((text: string, tone: ToastItem["tone"] = "info", durationMs = 2600) => {
@@ -73,9 +80,17 @@ export function GameAppProvider({ children }: PropsWithChildren) {
     setRoundModalOpen(true);
   }, []);
 
+  const handleTrickComplete = useCallback((payload: TrickCompletePayload) => {
+    setCompletedTricks((prev) => {
+      const withoutDuplicate = prev.filter((trick) => trick.trickNumber !== payload.trickNumber);
+      return [...withoutDuplicate, payload].sort((a, b) => a.trickNumber - b.trickNumber);
+    });
+  }, []);
+
   const session = useGameSession({
     onToast,
     onRoundComplete: handleRoundComplete,
+    onTrickComplete: handleTrickComplete,
   });
 
   if (session.connected) {
@@ -149,6 +164,7 @@ export function GameAppProvider({ children }: PropsWithChildren) {
       type: MessageType.StartRound,
       payload,
     });
+    setCompletedTricks([]);
     setRoundModalOpen(false);
   }
 
@@ -187,6 +203,7 @@ export function GameAppProvider({ children }: PropsWithChildren) {
     session.resetSession();
     setRoundModalOpen(false);
     setRoundWinner(null);
+    setCompletedTricks([]);
     queryClient.removeQueries({ queryKey: ["game"] });
   }
 
@@ -227,6 +244,7 @@ export function GameAppProvider({ children }: PropsWithChildren) {
     roundWinner,
     roundModalOpen,
     closeRoundModal: () => setRoundModalOpen(false),
+    completedTricks,
   };
 
   return <GameAppContext.Provider value={value}>{children}</GameAppContext.Provider>;
