@@ -109,6 +109,7 @@ export function TableScreen() {
                 playerId={seatLayout.top.playerId}
                 handCount={seatLayout.top.handCount}
                 score={seatLayout.top.score}
+                totalScore={game.totalScores[seatLayout.top.playerId] ?? 0}
                 isLeader={currentState.leaderPlayerId === seatLayout.top.playerId}
                 isTurn={currentState.currentTurnPlayerId === seatLayout.top.playerId}
                 compact
@@ -123,6 +124,7 @@ export function TableScreen() {
                   playerId={seatLayout.left.playerId}
                   handCount={seatLayout.left.handCount}
                   score={seatLayout.left.score}
+                  totalScore={game.totalScores[seatLayout.left.playerId] ?? 0}
                   isLeader={currentState.leaderPlayerId === seatLayout.left.playerId}
                   isTurn={currentState.currentTurnPlayerId === seatLayout.left.playerId}
                   compact
@@ -141,6 +143,7 @@ export function TableScreen() {
                   playerId={seatLayout.right.playerId}
                   handCount={seatLayout.right.handCount}
                   score={seatLayout.right.score}
+                  totalScore={game.totalScores[seatLayout.right.playerId] ?? 0}
                   isLeader={currentState.leaderPlayerId === seatLayout.right.playerId}
                   isTurn={currentState.currentTurnPlayerId === seatLayout.right.playerId}
                   compact
@@ -154,6 +157,7 @@ export function TableScreen() {
               playerId={yourId}
               handCount={yourHand.length}
               score={players.find((p) => p.playerId === yourId)?.score ?? 0}
+              totalScore={game.totalScores[yourId] ?? 0}
               isYou
               isLeader={currentState.leaderPlayerId === yourId}
               isTurn={currentState.currentTurnPlayerId === yourId}
@@ -222,6 +226,28 @@ export function TableScreen() {
       {currentState ? (
         <TrickHistory tricks={game.completedTricks} activeTrickNumber={currentState.trickNumber} />
       ) : null}
+
+      <section className="mt-4 panel">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-100">Total Scores (All Games)</h3>
+          <button type="button" className="btn-secondary py-1.5 text-xs" onClick={game.resetTotalScores}>
+            Reset Totals
+          </button>
+        </div>
+        <ul className="space-y-1 text-sm text-slate-200">
+          {Object.entries(game.totalScores)
+            .sort((a, b) => b[1] - a[1])
+            .map(([playerID, score]) => (
+              <li key={playerID} className="flex items-center justify-between rounded-lg bg-slate-800/60 px-3 py-2">
+                <span>Player {playerID}</span>
+                <span className="font-semibold">{score}</span>
+              </li>
+            ))}
+          {Object.keys(game.totalScores).length === 0 ? (
+            <li className="text-xs text-slate-400">No scores yet. Play tricks to accumulate totals.</li>
+          ) : null}
+        </ul>
+      </section>
 
       <section className="mt-4 panel" aria-live="polite">
         <h3 className="mb-2 text-sm font-semibold text-slate-100">Game Log</h3>

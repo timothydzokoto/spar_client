@@ -25,7 +25,7 @@ export function GameFlowLayout() {
         open={game.roundModalOpen}
         onClose={game.closeRoundModal}
         onPlayAgain={() => {
-          game.startRound();
+          game.playAgain();
           navigate({ to: "/table" });
         }}
       />

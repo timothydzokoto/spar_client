@@ -2,6 +2,7 @@ type PlayerSeatProps = {
   playerId: number;
   handCount: number;
   score?: number;
+  totalScore?: number;
   isYou?: boolean;
   isLeader?: boolean;
   isTurn?: boolean;
@@ -12,6 +13,7 @@ export function PlayerSeat({
   playerId,
   handCount,
   score = 0,
+  totalScore = 0,
   isYou = false,
   isLeader = false,
   isTurn = false,
@@ -32,6 +34,7 @@ export function PlayerSeat({
       <div className="space-y-1 text-xs text-slate-300">
         <p>Cards: {handCount}</p>
         <p>Score: {score}</p>
+        <p>Total: {totalScore}</p>
         <div className="flex flex-wrap gap-1">
           {isLeader ? <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-amber-200">Leader</span> : null}
           {isTurn ? <span className="rounded-full bg-cyan-400/20 px-2 py-0.5 text-cyan-200">Turn</span> : null}

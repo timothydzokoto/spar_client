@@ -41,6 +41,7 @@ type GameAppContextValue = {
   startRound: () => void;
   getState: () => void;
   playCard: (card: string) => void;
+  playAgain: () => void;
   canPlayCard: (card: string) => { allowed: boolean; reason?: string };
   exitSession: () => void;
   toasts: ToastItem[];
@@ -49,22 +50,27 @@ type GameAppContextValue = {
   roundModalOpen: boolean;
   closeRoundModal: () => void;
   completedTricks: TrickCompletePayload[];
+  totalScores: Record<number, number>;
+  resetTotalScores: () => void;
 };
 
 const GameAppContext = createContext<GameAppContextValue | null>(null);
+const TOTAL_SCORES_KEY = "trickleader_total_scores_v1";
 
 export function GameAppProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const [wsUrl, setWsUrl] = useState(import.meta.env.VITE_WS_URL ?? "ws://localhost:8080/ws");
   const [gameId, setGameId] = useState("table-1");
   const [playerId, setPlayerId] = useState(1);
-  const [seedInput, setSeedInput] = useState("42");
+  const [seedInput, setSeedInput] = useState("");
   const [excludedRanksInput, setExcludedRanksInput] = useState("");
   const [excludedCardsInput, setExcludedCardsInput] = useState("");
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [roundWinner, setRoundWinner] = useState<number | null>(null);
   const [roundModalOpen, setRoundModalOpen] = useState(false);
   const [completedTricks, setCompletedTricks] = useState<TrickCompletePayload[]>([]);
+  const [totalScores, setTotalScores] = useState<Record<number, number>>(loadTotalScores());
+  const [lastStartPayload, setLastStartPayload] = useState<StartRoundPayload | null>(null);
   const hasEverConnected = useRef(false);
 
   const onToast = useCallback((text: string, tone: ToastItem["tone"] = "info", durationMs = 2600) => {
@@ -84,6 +90,11 @@ export function GameAppProvider({ children }: PropsWithChildren) {
     setCompletedTricks((prev) => {
       const withoutDuplicate = prev.filter((trick) => trick.trickNumber !== payload.trickNumber);
       return [...withoutDuplicate, payload].sort((a, b) => a.trickNumber - b.trickNumber);
+    });
+    setTotalScores((prev) => {
+      const next = { ...prev, [payload.winnerPlayerId]: (prev[payload.winnerPlayerId] ?? 0) + payload.trickPoints };
+      persistTotalScores(next);
+      return next;
     });
   }, []);
 
@@ -149,10 +160,13 @@ export function GameAppProvider({ children }: PropsWithChildren) {
   }
 
   function startRound() {
-    const seedNum = Number(seedInput);
     const payload: StartRoundPayload = {};
-    if (Number.isFinite(seedNum)) {
-      payload.seed = seedNum;
+    const trimmedSeed = seedInput.trim();
+    if (trimmedSeed !== "") {
+      const seedNum = Number(trimmedSeed);
+      if (Number.isFinite(seedNum)) {
+        payload.seed = seedNum;
+      }
     }
     if (rankValidation.values.length > 0 || cardValidation.values.length > 0) {
       payload.rules = {
@@ -160,6 +174,18 @@ export function GameAppProvider({ children }: PropsWithChildren) {
         excludedCards: cardValidation.values,
       };
     }
+    session.send({
+      type: MessageType.StartRound,
+      payload,
+    });
+    setLastStartPayload(payload);
+    setCompletedTricks([]);
+    setRoundModalOpen(false);
+  }
+
+  function playAgain() {
+    const fallbackPayload: StartRoundPayload = {};
+    const payload = lastStartPayload ?? fallbackPayload;
     session.send({
       type: MessageType.StartRound,
       payload,
@@ -204,7 +230,13 @@ export function GameAppProvider({ children }: PropsWithChildren) {
     setRoundModalOpen(false);
     setRoundWinner(null);
     setCompletedTricks([]);
+    setLastStartPayload(null);
     queryClient.removeQueries({ queryKey: ["game"] });
+  }
+
+  function resetTotalScores() {
+    setTotalScores({});
+    persistTotalScores({});
   }
 
   const value: GameAppContextValue = {
@@ -237,6 +269,7 @@ export function GameAppProvider({ children }: PropsWithChildren) {
     startRound,
     getState,
     playCard,
+    playAgain,
     canPlayCard,
     exitSession,
     toasts,
@@ -245,9 +278,45 @@ export function GameAppProvider({ children }: PropsWithChildren) {
     roundModalOpen,
     closeRoundModal: () => setRoundModalOpen(false),
     completedTricks,
+    totalScores,
+    resetTotalScores,
   };
 
   return <GameAppContext.Provider value={value}>{children}</GameAppContext.Provider>;
+}
+
+function loadTotalScores(): Record<number, number> {
+  if (typeof window === "undefined") {
+    return {};
+  }
+  try {
+    const raw = window.localStorage.getItem(TOTAL_SCORES_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Record<string, number>;
+    const out: Record<number, number> = {};
+    for (const [playerID, score] of Object.entries(parsed)) {
+      const numericID = Number(playerID);
+      if (Number.isFinite(numericID) && Number.isFinite(score)) {
+        out[numericID] = score;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function persistTotalScores(scores: Record<number, number>) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(TOTAL_SCORES_KEY, JSON.stringify(scores));
+  } catch {
+    // Ignore storage failures in restricted environments.
+  }
 }
 
 export function useGameApp() {
